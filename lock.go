@@ -9,8 +9,8 @@ type Locker interface {
 	MutexLock(ctx context.Context, key string, opts ...Option) (Lock, error)
 	ReentrantLock(ctx context.Context, key string, opts ...Option) (Lock, error)
 	FairLock(ctx context.Context, key string, opts ...Option) (Lock, error)
-	ReadLock(ctx context.Context, key string, opts ...Option) (Lock, error)
-	WriteLock(ctx context.Context, key string, opts ...Option) (Lock, error)
+	ReadLock(ctx context.Context, key string, opts ...Option) (ReadLock, error)
+	WriteLock(ctx context.Context, key string, opts ...Option) (WriteLock, error)
 }
 
 type Lock interface {

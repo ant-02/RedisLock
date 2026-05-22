@@ -13,7 +13,7 @@ type RedLockNode struct {
 	url    string
 }
 
-type RedLock struct {
+type RedLockClient struct {
 	nodes    []RedLockNode
 	quorum   int
 	timeout  time.Duration
@@ -23,7 +23,7 @@ type RedLock struct {
 	acquired int
 }
 
-func NewRedLock(nodes []string, timeout time.Duration) (*RedLock, error) {
+func NewRedLock(nodes []string, timeout time.Duration) (*RedLockClient, error) {
 	clients := make([]RedLockNode, len(nodes))
 	for i, url := range nodes {
 		client := redis.NewClient(&redis.Options{Addr: url})
@@ -31,14 +31,14 @@ func NewRedLock(nodes []string, timeout time.Duration) (*RedLock, error) {
 	}
 
 	quorum := len(nodes)/2 + 1
-	return &RedLock{
+	return &RedLockClient{
 		nodes:   clients,
 		quorum:  quorum,
 		timeout: timeout,
 	}, nil
 }
 
-func (r *RedLock) Lock(ctx context.Context) error {
+func (r *RedLockClient) Lock(ctx context.Context) error {
 	r.mu.Lock()
 	r.value = generateLockValue()
 	r.acquired = 0
@@ -69,7 +69,7 @@ func (r *RedLock) Lock(ctx context.Context) error {
 	return nil
 }
 
-func (r *RedLock) Unlock(ctx context.Context) error {
+func (r *RedLockClient) Unlock(ctx context.Context) error {
 	var wg sync.WaitGroup
 	var errMu sync.Mutex
 	var firstErr error
@@ -92,7 +92,7 @@ func (r *RedLock) Unlock(ctx context.Context) error {
 	return firstErr
 }
 
-func (r *RedLock) Extend(ctx context.Context, expiry time.Duration) error {
+func (r *RedLockClient) Extend(ctx context.Context, expiry time.Duration) error {
 	var wg sync.WaitGroup
 	var errMu sync.Mutex
 	var firstErr error
@@ -117,7 +117,7 @@ func (r *RedLock) Extend(ctx context.Context, expiry time.Duration) error {
 	return firstErr
 }
 
-func (r *RedLock) acquireOnNode(ctx context.Context, node RedLockNode) bool {
+func (r *RedLockClient) acquireOnNode(ctx context.Context, node RedLockNode) bool {
 	script := redis.NewScript(lockScript)
 	ctx, cancel := context.WithTimeout(ctx, r.timeout/2)
 	defer cancel()
@@ -126,7 +126,7 @@ func (r *RedLock) acquireOnNode(ctx context.Context, node RedLockNode) bool {
 	return err == nil
 }
 
-func (r *RedLock) releaseOnNode(ctx context.Context, node RedLockNode) error {
+func (r *RedLockClient) releaseOnNode(ctx context.Context, node RedLockNode) error {
 	script := redis.NewScript(unlockScript)
 	return script.Run(ctx, node.client, []string{"redlock:" + r.key}, r.value).Err()
 }

@@ -73,7 +73,7 @@ func (b *ExponentialBackoff) Next() (delay time.Duration, ok bool) {
 		return b.BaseDelay, true
 	}
 
-	delay = time.Duration(float64(b.BaseDelay) * pow(b.Multiplier, float64(b.attempts-1)))
+	delay = time.Duration(float64(b.BaseDelay) * pow(b.Multiplier, b.attempts-1))
 	if delay > b.MaxDelay {
 		delay = b.MaxDelay
 	}
@@ -100,7 +100,7 @@ type RetryUntilContext struct {
 	ctx context.Context
 }
 
-func (UntilContext(ctx context.Context) RetryStrategy {
+func UntilContext(ctx context.Context) RetryStrategy {
 	return &RetryUntilContext{ctx: ctx}
 }
 

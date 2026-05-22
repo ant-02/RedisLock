@@ -130,7 +130,8 @@ func TestReadWriteLock(t *testing.T) {
 	}
 
 	// Read lock
-	rlock, err := locker.ReadLock(ctx, "test-rw")
+	var rlock redislock.ReadLock
+	rlock, err = locker.ReadLock(ctx, "test-rw")
 	if err != nil {
 		t.Fatalf("Failed to acquire read lock: %v", err)
 	}

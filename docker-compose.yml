@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  redis-1:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis1_data:/data
+    command: redis-server --appendonly yes
+
+  redis-2:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis2_data:/data
+    command: redis-server --appendonly yes
+
+  redis-3:
+    image: redis:7-alpine
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis3_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  redis1_data:
+  redis2_data:
+  redis3_data::

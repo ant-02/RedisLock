@@ -73,7 +73,7 @@ func BenchmarkReadWriteLock(b *testing.B) {
 		wlock.Unlock(ctx)
 
 		rlock, _ := locker.ReadLock(ctx, "bench-rw")
-		rlock.RUnlock(ctx)
+		redislock.ReadLock(rlock).RUnlock(ctx)
 	}
 }
 

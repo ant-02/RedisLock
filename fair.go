@@ -10,7 +10,6 @@ import (
 
 type FairLock struct {
 	*baseLock
-	client    *redis.Client
 	queueKey  string
 	requestID string
 	mu        sync.Mutex
@@ -25,7 +24,6 @@ func (l *RedisLocker) newFairLock(ctx context.Context, key string, opts ...Optio
 	bl := newBaseLock(l.client, formatKey("fair", key), options)
 	fairLock := &FairLock{
 		baseLock: bl,
-		client:   l.client,
 		queueKey: formatKey("fair:queue", key),
 	}
 
@@ -43,7 +41,7 @@ func (f *FairLock) Lock(ctx context.Context) error {
 func (f *FairLock) tryAcquire(ctx context.Context) (bool, error) {
 	timestamp := time.Now().UnixMilli()
 	script := redis.NewScript(fairLockScript)
-	result, err := script.Run(ctx, f.client,
+	result, err := script.Run(ctx, f.baseLock.client,
 		[]string{f.key, f.queueKey},
 		f.value, timestamp, f.opts.Timeout.Milliseconds(), f.requestID,
 	).Int()
@@ -71,7 +69,7 @@ func (f *FairLock) lock(ctx context.Context) error {
 				if interval == 0 {
 					interval = f.opts.Timeout / 3
 				}
-				f.watchdog = newWatchdog(f.client, f.key, f.value, f.opts.Timeout, interval)
+				f.watchdog = newWatchdog(f.baseLock.client, f.key, f.value, f.opts.Timeout, interval)
 				f.watchdog.Start(ctx)
 			}
 			return nil
@@ -104,7 +102,7 @@ func (f *FairLock) Extend(ctx context.Context, expiry time.Duration) error {
 		return ErrLockNotHeld
 	}
 	script := redis.NewScript(extendScript)
-	_, err := script.Run(ctx, f.client, []string{f.key}, f.value, expiry.Milliseconds()).Result()
+	_, err := script.Run(ctx, f.baseLock.client, []string{f.key}, f.value, expiry.Milliseconds()).Result()
 	return err
 }
 

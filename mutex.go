@@ -9,10 +9,9 @@ import (
 
 type Mutex struct {
 	*baseLock
-	client *redis.Client
 }
 
-func (l *RedisLocker) newMutex(ctx context.Context, key string, reentrant bool, opts ...Option) (*Mutex, error) {
+func (l *RedisLocker) newMutex(ctx context.Context, key string, opts ...Option) (*Mutex, error) {
 	options := l.opts
 	for _, opt := range opts {
 		opt(&options)
@@ -21,7 +20,6 @@ func (l *RedisLocker) newMutex(ctx context.Context, key string, reentrant bool, 
 	bl := newBaseLock(l.client, formatKey("mutex", key), options)
 	return &Mutex{
 		baseLock: bl,
-		client:   l.client,
 	}, nil
 }
 
@@ -38,6 +36,6 @@ func (m *Mutex) Extend(ctx context.Context, expiry time.Duration) error {
 		return ErrLockNotHeld
 	}
 	script := redis.NewScript(extendScript)
-	_, err := script.Run(ctx, m.client, []string{m.key}, m.value, expiry.Milliseconds()).Result()
+	_, err := script.Run(ctx, m.baseLock.client, []string{m.key}, m.value, expiry.Milliseconds()).Result()
 	return err
 }

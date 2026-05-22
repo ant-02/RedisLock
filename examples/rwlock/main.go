@@ -16,48 +16,67 @@ func main() {
 	defer client.Close()
 
 	locker := redislock.NewRedisLocker(client)
-
 	ctx := context.Background()
 
-	// Read-Write lock example
-	lock, err := locker.WriteLock(ctx, "shared-resource")
+	// Write lock - exclusive access
+	fmt.Println("=== Write Lock (Exclusive) ===")
+	wlock, err := locker.WriteLock(ctx, "shared-resource",
+		redislock.WithTimeout(10*time.Second),
+	)
 	if err != nil {
 		log.Fatalf("Failed to acquire write lock: %v", err)
 	}
 
-	fmt.Println("Write lock acquired!")
+	fmt.Printf("Write lock acquired: key=%s, held=%v\n", wlock.Key(), wlock.IsHeld())
 
 	// Simulate write operation
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 
-	// Release write lock
-	if err := lock.Unlock(ctx); err != nil {
-		log.Fatalf("Failed to release write lock: %v", err)
-	}
+	wlock.Unlock(ctx)
+	fmt.Println("Write lock released")
 
-	// Now acquire read lock
-	readLock, err := locker.ReadLock(ctx, "shared-resource")
+	// Read lock - shared access
+	fmt.Println("\n=== Read Lock (Shared) ===")
+	rlock, err := locker.ReadLock(ctx, "shared-resource",
+		redislock.WithTimeout(10*time.Second),
+	)
 	if err != nil {
 		log.Fatalf("Failed to acquire read lock: %v", err)
 	}
 
-	fmt.Println("Read lock acquired!")
+	fmt.Printf("Read lock acquired: held=%v\n", rlock.IsHeld())
 
+	// Multiple concurrent readers
+	fmt.Println("\n=== Multiple Concurrent Readers ===")
 	var wg sync.WaitGroup
 	for i := 0; i < 3; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			rLock, _ := locker.ReadLock(ctx, "shared-resource")
-			fmt.Printf("Reader %d acquired read lock\n", id)
+			rl, err := locker.ReadLock(ctx, "shared-resource")
+			if err != nil {
+				fmt.Printf("Reader %d failed: %v\n", id, err)
+				return
+			}
+			fmt.Printf("Reader %d acquired read lock (held=%v)\n", id, rl.IsHeld())
 			time.Sleep(100 * time.Millisecond)
-			rLock.Unlock(ctx)
+			rl.RUnlock(ctx)
 			fmt.Printf("Reader %d released read lock\n", id)
 		}(i)
 	}
-
 	wg.Wait()
-	readLock.Unlock(ctx)
 
-	fmt.Println("All done!")
+	rlock.RUnlock(ctx)
+	fmt.Println("Main read lock released")
+
+	// Demonstrate write blocks readers
+	fmt.Println("\n=== Write blocks Readers ===")
+	wlock2, _ := locker.WriteLock(ctx, "exclusive-resource")
+	fmt.Println("Write lock acquired - no readers can proceed")
+
+	time.Sleep(500 * time.Millisecond)
+	wlock2.Unlock(ctx)
+	fmt.Println("Write lock released")
+
+	fmt.Println("\nDone!")
 }

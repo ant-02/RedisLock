@@ -11,7 +11,6 @@ import (
 
 type ReentrantMutex struct {
 	*baseLock
-	client   *redis.Client
 	counters sync.Map
 }
 
@@ -24,7 +23,6 @@ func (l *RedisLocker) newReentrantMutex(ctx context.Context, key string, opts ..
 	bl := newBaseLock(l.client, formatKey("reentrant", key), options)
 	return &ReentrantMutex{
 		baseLock: bl,
-		client:   l.client,
 	}, nil
 }
 
@@ -79,7 +77,7 @@ func (m *ReentrantMutex) Extend(ctx context.Context, expiry time.Duration) error
 		return ErrLockNotHeld
 	}
 	script := redis.NewScript(extendScript)
-	_, err := script.Run(ctx, m.client, []string{m.key}, m.value, expiry.Milliseconds()).Result()
+	_, err := script.Run(ctx, m.baseLock.client, []string{m.key}, m.value, expiry.Milliseconds()).Result()
 	return err
 }
 

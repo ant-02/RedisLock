@@ -38,22 +38,22 @@ func generateLockValue() string {
 }
 
 func (l *RedisLocker) MutexLock(ctx context.Context, key string, opts ...Option) (Lock, error) {
-	return l.newMutex(ctx, key, false, opts...)
+	return l.newMutex(ctx, key, opts...)
 }
 
 func (l *RedisLocker) ReentrantLock(ctx context.Context, key string, opts ...Option) (Lock, error) {
-	return l.newMutex(ctx, key, true, opts...)
+	return l.newReentrantMutex(ctx, key, opts...)
 }
 
 func (l *RedisLocker) FairLock(ctx context.Context, key string, opts ...Option) (Lock, error) {
 	return l.newFairLock(ctx, key, opts...)
 }
 
-func (l *RedisLocker) ReadLock(ctx context.Context, key string, opts ...Option) (Lock, error) {
+func (l *RedisLocker) ReadLock(ctx context.Context, key string, opts ...Option) (ReadLock, error) {
 	return l.newReadWriteLock(ctx, key, opts...)
 }
 
-func (l *RedisLocker) WriteLock(ctx context.Context, key string, opts ...Option) (Lock, error) {
+func (l *RedisLocker) WriteLock(ctx context.Context, key string, opts ...Option) (WriteLock, error) {
 	return l.newReadWriteLock(ctx, key, opts...)
 }
 
